@@ -1,0 +1,23 @@
+# dependencias y builds
+node_modules/
+*.tgz
+__pycache__/
+*.pyc
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+*.apk
+*.jks
+*.keystore
+
+# lo de cada casa: config, tokens, audio grabado
+.env
+privado/
+.agent/
+.DS_Store
+
+# salidas de los bancos de prueba de la charla
+voz/salida*.wav
+voz/tts-out/

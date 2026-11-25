@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heladera · propuesta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Propuesta para la tablet SM-T350 (1024×768, mdpi: 1 px = 1 dp). Se mira de lejos, en una cocina. */
+  :root {
+    --bg: #0A0D09; --panel: #12170F; --panel2: #192015; --line: #242D1D;
+    --lima: #C7F536; --lima-ink: #0B0F0A; --lima-soft: rgba(199,245,54,.12);
+    --text: #F3F6EE; --muted: #8E977F; --faint: #5B6451; --warn: #FF8A5B; --done: #5B6451;
+    --r: 22px;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #000; color: var(--text); font-family: Figtree, system-ui, sans-serif; display: grid;
+         place-items: center; min-height: 100vh; gap: 18px; padding: 24px 16px; }
+  .tablet { width: 1024px; height: 768px; background: var(--bg); border-radius: 18px; overflow: hidden;
+            display: grid; grid-template-columns: 1fr 360px; grid-template-rows: 84px 1fr; position: relative;
+            box-shadow: 0 0 0 10px #1a1a1a, 0 30px 80px rgba(0,0,0,.6); }
+
+  /* --- arriba --- */
+  header { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; padding: 0 28px; }
+  .logo { width: 44px; height: 44px; }
+  .marca { font-family: "Bricolage Grotesque"; font-weight: 800; font-size: 30px; letter-spacing: -.02em; }
+  .hora { margin-left: auto; text-align: right; line-height: 1.1; }
+  .hora b { font-family: "Bricolage Grotesque"; font-weight: 700; font-size: 26px; }
+  .hora span { display: block; color: var(--muted); font-size: 14px; }
+  .vistas { display: flex; background: var(--panel); border-radius: 999px; padding: 4px; margin-left: 28px; }
+  .vistas button { all: unset; padding: 10px 18px; border-radius: 999px; color: var(--muted); font-weight: 600; font-size: 15px; }
+  .vistas button.on { background: var(--panel2); color: var(--text); }
+
+  /* --- la lista --- */
+  main { padding: 4px 12px 24px 28px; overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
+  .resumen { display: flex; align-items: baseline; gap: 12px; padding: 0 4px; }
+  .resumen h1 { font-family: "Bricolage Grotesque"; font-weight: 800; font-size: 52px; letter-spacing: -.03em; line-height: 1; }
+  .resumen h1 em { font-style: normal; color: var(--lima); }
+  .resumen p { color: var(--muted); font-size: 17px; }
+  .gondolas { columns: 2; column-gap: 14px; }
+  .gondola { break-inside: avoid; background: var(--panel); border-radius: var(--r); padding: 14px 6px 8px; margin-bottom: 14px; }
+  .gondola h2 { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; color: var(--muted);
+                padding: 0 12px 8px; letter-spacing: .01em; }
+  .gondola h2 svg { width: 22px; height: 22px; color: var(--lima); }
+  .gondola h2 small { margin-left: auto; font-weight: 500; color: var(--faint); }
+  .item { display: flex; align-items: center; gap: 14px; padding: 9px 12px; border-radius: 14px; position: relative; }
+  .tilde { width: 30px; height: 30px; border-radius: 50%; border: 2.5px solid var(--faint); flex: none; }
+  .item .nombre { font-size: 22px; font-weight: 600; }
+  .item .cant { margin-left: auto; font-size: 17px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .item.nuevo { background: var(--lima-soft); }
+  .item.nuevo::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 4px; border-radius: 4px; background: var(--lima); }
+  .item.hecho .nombre { color: var(--done); text-decoration: line-through; text-decoration-thickness: 2px; }
+  .item.hecho .tilde { background: var(--faint); border-color: var(--faint); display: grid; place-items: center; }
+  .item.hecho .tilde::after { content: ""; width: 12px; height: 7px; border-left: 3px solid var(--bg); border-bottom: 3px solid var(--bg); transform: translateY(-2px) rotate(-45deg); }
+  .compradas { color: var(--faint); font-size: 16px; padding: 4px 8px; }
+
+  /* --- la heladera que habla --- */
+  aside { margin: 4px 24px 24px 0; background: var(--panel); border-radius: 28px; display: flex; flex-direction: column;
+          align-items: center; padding: 26px 22px 22px; position: relative; overflow: hidden; }
+  .charla { width: 100%; flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 12px; overflow: hidden; }
+  .yo { align-self: flex-end; max-width: 92%; font-size: 19px; line-height: 1.35; color: var(--text); background: var(--panel2);
+        padding: 12px 16px; border-radius: 20px 20px 6px 20px; }
+  .yo.vivo { color: var(--muted); background: none; border: 1.5px dashed var(--line); }
+  .ella { align-self: flex-start; max-width: 92%; font-size: 21px; line-height: 1.35; font-weight: 600; }
+  .ella.chica { font-size: 17px; font-weight: 500; color: var(--muted); }
+  .hecho-chip { align-self: flex-start; display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--lima);
+                background: var(--lima-soft); padding: 6px 12px; border-radius: 999px; font-weight: 600; }
+  .boton { margin-top: 22px; width: 196px; height: 196px; border-radius: 50%; display: grid; place-items: center; position: relative;
+           background: var(--lima); color: var(--lima-ink); flex: none; }
+  .boton .adentro { text-align: center; font-family: "Bricolage Grotesque"; font-weight: 800; font-size: 24px; line-height: 1.1; }
+  .boton .adentro svg { width: 46px; height: 46px; display: block; margin: 0 auto 6px; }
+  .anillo { position: absolute; inset: -14px; border-radius: 50%; border: 3px solid var(--lima); opacity: 0; }
+  .pista { margin-top: 14px; color: var(--muted); font-size: 15px; text-align: center; min-height: 20px; }
+  .acciones { display: flex; gap: 10px; margin-top: 14px; }
+  .acciones button { all: unset; display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 999px;
+                     background: var(--panel2); font-weight: 600; font-size: 16px; color: var(--text); }
+  .acciones svg { width: 20px; height: 20px; color: var(--lima); }
+
+  /* estados */
+  .tablet[data-s="escucha"] .boton { background: var(--lima-ink); color: var(--lima); box-shadow: inset 0 0 0 4px var(--lima); }
+  .tablet[data-s="escucha"] .anillo { animation: latido 1.4s ease-out infinite; }
+  .tablet[data-s="escucha"] .anillo + .anillo { animation-delay: .7s; }
+  .tablet[data-s="piensa"] .boton { background: var(--panel2); color: var(--lima); }
+  .tablet[data-s="piensa"] .boton::after { content: ""; position: absolute; inset: -8px; border-radius: 50%;
+     border: 4px solid transparent; border-top-color: var(--lima); animation: gira 1s linear infinite; }
+  .tablet[data-s="habla"] .boton { background: var(--lima); }
+  .tablet[data-s="habla"] .barras { display: flex; }
+  .barras { display: none; gap: 6px; align-items: center; height: 46px; justify-content: center; margin-bottom: 6px; }
+  .barras i { width: 7px; border-radius: 4px; background: var(--lima-ink); animation: barra .9s ease-in-out infinite; }
+  .barras i:nth-child(2) { animation-delay: .15s } .barras i:nth-child(3) { animation-delay: .3s } .barras i:nth-child(4) { animation-delay: .45s } .barras i:nth-child(5) { animation-delay: .6s }
+  .tablet[data-s="habla"] .boton .adentro svg { display: none; }
+  @keyframes latido { from { transform: scale(.92); opacity: .8 } to { transform: scale(1.18); opacity: 0 } }
+  @keyframes gira { to { transform: rotate(360deg) } }
+  @keyframes barra { 0%,100% { height: 12px } 50% { height: 42px } }
+
+  .controles { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 1024px; }
+  .controles button { all: unset; cursor: pointer; padding: 10px 16px; border-radius: 999px; background: #1b1b1b; color: #ccc; font-size: 14px; }
+  .controles button.on { background: var(--lima); color: var(--lima-ink); font-weight: 700; }
+  .nota { color: #888; font-size: 13px; max-width: 1024px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="tablet" id="t" data-s="reposo">
+  <header>
+    <svg class="logo" viewBox="0 0 512 512" aria-hidden="true">
+      <rect width="512" height="512" rx="113" fill="#0B0F0A"/><rect x="138" y="82" width="236" height="358" rx="36" fill="#C7F536"/>
+      <rect x="138" y="199" width="236" height="12" fill="#0B0F0A"/><rect x="337" y="143" width="14" height="36" rx="7" fill="#0B0F0A"/>
+      <rect x="337" y="230" width="14" height="72" rx="7" fill="#0B0F0A"/></svg>
+    <span class="marca">Heladera</span>
+    <div class="vistas"><button class="on">Por góndola</button><button>Todo junto</button><button>Asado</button></div>
+    <div class="hora"><b>19:42</b><span>martes 25</span></div>
+  </header>
+
+  <main>
+    <div class="resumen"><h1>Faltan <em>9</em></h1><p>2 ya en el changuito</p></div>
+    <div class="gondolas">
+      <section class="gondola">
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-4 0-7-3-7-7 0-3 2-6 7-10 5 4 7 7 7 10 0 4-3 7-7 7z"/><path d="M12 21v-8"/></svg>Verdulería<small>3</small></h2>
+        <div class="item nuevo"><span class="tilde"></span><span class="nombre">Papa</span><span class="cant">1 kg</span></div>
+        <div class="item"><span class="tilde"></span><span class="nombre">Cebolla</span><span class="cant">2 kg</span></div>
+        <div class="item"><span class="tilde"></span><span class="nombre">Zanahoria</span><span class="cant">1 kg</span></div>
+      </section>
+      <section class="gondola">
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l-1 4H9z"/><path d="M9 7c-2 1-3 3-3 5v8a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-8c0-2-1-4-3-5"/></svg>Lácteos y huevos<small>2</small></h2>
+        <div class="item nuevo"><span class="tilde"></span><span class="nombre">Queso cremoso</span><span class="cant">½ kg</span></div>
+        <div class="item"><span class="tilde"></span><span class="nombre">Huevos</span><span class="cant">1 docena</span></div>
+      </section>
+      <section class="gondola">
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="13" rx="2"/><path d="M8 8V5a4 4 0 0 1 8 0v3"/></svg>Almacén<small>2</small></h2>
+        <div class="item"><span class="tilde"></span><span class="nombre">Fideos</span><span class="cant">1 paquete</span></div>
+        <div class="item"><span class="tilde"></span><span class="nombre">Atún</span><span class="cant">3 latas</span></div>
+        <div class="item hecho"><span class="tilde"></span><span class="nombre">Yerba</span><span class="cant">1 kg</span></div>
+      </section>
+      <section class="gondola">
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8v4l-1 2v11a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V9L8 7z"/></svg>Bebidas<small>2</small></h2>
+        <div class="item nuevo"><span class="tilde"></span><span class="nombre">Cerveza</span><span class="cant">1</span></div>
+        <div class="item"><span class="tilde"></span><span class="nombre">Leche</span><span class="cant">2 l</span></div>
+        <div class="item hecho"><span class="tilde"></span><span class="nombre">Soda</span><span class="cant">2</span></div>
+      </section>
+    </div>
+  </main>
+
+  <aside>
+    <div class="charla" id="charla"></div>
+    <div class="boton"><span class="anillo"></span><span class="anillo"></span>
+      <div class="adentro"><div class="barras"><i></i><i></i><i></i><i></i><i></i></div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        <span id="etiqueta">Hablar</span></div></div>
+    <div class="pista" id="pista">o decí “che, heladera”</div>
+    <div class="acciones">
+      <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg>Mandar</button>
+      <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>Más</button>
+    </div>
+  </aside>
+</div>
+
+<div class="controles" id="c">
+  <button data-s="reposo" class="on">En reposo</button>
+  <button data-s="escucha">Escuchando</button>
+  <button data-s="piensa">Pensando</button>
+  <button data-s="habla">Hablando</button>
+</div>
+<p class="nota">Tamaño real de la tablet (1024 × 768). Tocá los estados para ver cómo cambia el panel de la derecha.</p>
+
+<script>
+  const S = {
+    reposo: { e: "Hablar", p: "o decí “che, heladera”", c: `
+      <div class="ella chica">Hoy anotaste papa, queso cremoso y cerveza.</div>` },
+    escucha: { e: "Te escucho", p: "tocá para cortar", c: `
+      <div class="yo vivo">anotame un kilo de papas, medio de queso cremoso y una cerv…</div>` },
+    piensa: { e: "Anotando", p: "", c: `
+      <div class="yo">Anotame un kilo de papas, medio de queso cremoso y una cerveza.</div>
+      <div class="ella chica">Dale, anoto.</div>` },
+    habla: { e: "Hablando", p: "hablá encima para cortarla", c: `
+      <div class="yo">Anotame un kilo de papas, medio de queso cremoso y una cerveza.</div>
+      <span class="hecho-chip">✓ 3 anotados</span>
+      <div class="ella">Listo, anoté papa, queso cremoso y cerveza. ¿Algo más?</div>` },
+  }
+  const t = document.getElementById("t")
+  function ir(s) {
+    t.dataset.s = s
+    document.getElementById("etiqueta").textContent = S[s].e
+    document.getElementById("pista").textContent = S[s].p
+    document.getElementById("charla").innerHTML = S[s].c
+    document.querySelectorAll("#c button").forEach(b => b.classList.toggle("on", b.dataset.s === s))
+  }
+  document.getElementById("c").onclick = e => e.target.dataset.s && ir(e.target.dataset.s)
+  ir("reposo")
+</script>
+</body>
+</html>

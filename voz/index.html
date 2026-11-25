@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heladera · charla</title>
+<style>
+  :root { --bg:#0f1412; --card:#18201c; --ink:#e8efe9; --dim:#8aa093; --acc:#6fd39a; --warn:#f0b45a; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.45 system-ui, sans-serif; }
+  main { max-width:720px; margin:0 auto; padding:16px; }
+  button { font:inherit; padding:14px 22px; border-radius:14px; border:0; background:var(--acc); color:#0b1a12; font-weight:700; }
+  button.off { background:#2a332e; color:var(--ink); }
+  #state { color:var(--dim); margin-left:12px; }
+  #log { margin-top:16px; display:flex; flex-direction:column; gap:8px; }
+  .me { align-self:flex-end; background:#22302a; padding:8px 12px; border-radius:12px; max-width:85%; }
+  .it { align-self:flex-start; background:var(--card); padding:8px 12px; border-radius:12px; max-width:85%; }
+  .tool { color:var(--dim); font-size:13px; }
+  .time { color:var(--warn); font-size:12px; font-family:ui-monospace, monospace; }
+  #partial { color:var(--dim); font-style:italic; min-height:1.4em; margin-top:12px; }
+  form { display:flex; gap:8px; margin-top:12px; }
+  input { flex:1; font:inherit; padding:10px; border-radius:10px; border:1px solid #2a332e; background:var(--card); color:var(--ink); }
+</style>
+</head>
+<body>
+<main>
+  <div><button id="go">Hablar</button><span id="state">apagado</span></div>
+  <div id="partial"></div>
+  <form id="f"><input id="t" placeholder="o escribilo…"><button class="off">Mandar</button></form>
+  <div id="log"></div>
+</main>
+<script>
+const $ = s => document.querySelector(s)
+let ws, ctx, mic, node, playAt = 0, sources = [], outSr = 22050, lastMe = null
+
+function add(cls, text) {
+  const d = document.createElement('div'); d.className = cls; d.textContent = text
+  $('#log').prepend(d); return d
+}
+
+async function start() {
+  ctx = new AudioContext()
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+  mic = ctx.createMediaStreamSource(stream)
+  // Baja a 16 kHz PCM16 en un worklet: lo que el servidor espera.
+  const code = `class P extends AudioWorkletProcessor {
+    constructor(){ super(); this.r = sampleRate / 16000; this.acc = []; this.pos = 0 }
+    process(inp){ const x = inp[0][0]; if (!x) return true
+      for (; this.pos < x.length; this.pos += this.r) this.acc.push(x[Math.floor(this.pos)])
+      this.pos -= x.length
+      if (this.acc.length >= 512) { const a = new Int16Array(this.acc.length)
+        for (let i = 0; i < a.length; i++) a[i] = Math.max(-1, Math.min(1, this.acc[i])) * 32767
+        this.port.postMessage(a.buffer, [a.buffer]); this.acc = [] }
+      return true } }
+  registerProcessor('p', P)`
+  await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })))
+  node = new AudioWorkletNode(ctx, 'p'); mic.connect(node)
+  // el token va en el fragmento (#token=…), que el navegador no manda al servidor con la página
+  const tok = new URLSearchParams(location.hash.slice(1)).get('token') || ''
+  ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/talk' + (tok ? '?token=' + encodeURIComponent(tok) : ''))
+  ws.binaryType = 'arraybuffer'
+  node.port.onmessage = e => { if (ws.readyState === 1) ws.send(e.data) }
+  ws.onmessage = e => {
+    if (typeof e.data !== 'string') return play(e.data)
+    const f = JSON.parse(e.data)
+    if (f.type === 'ready') { outSr = f.sr; $('#state').textContent = 'escuchando' }
+    else if (f.type === 'partial') $('#partial').textContent = f.text
+    else if (f.type === 'heard') {  // si se unió con lo anterior es el mismo pedido: se reemplaza
+      $('#partial').textContent = ''
+      if (f.joined && lastMe) lastMe.textContent = f.text
+      else lastMe = add('me', f.text)
+    }
+    else if (f.type === 'saying') { if (!f.filler) lastMe = null; add('it', f.text) }
+    else if (f.type === 'state') $('#state').textContent = { listening: 'escuchando', thinking: 'pensando…', speaking: 'hablando' }[f.state] || f.state
+    else if (f.type === 'tool') add('tool', `${f.ok ? '✓' : '✗'} ${f.name} ${JSON.stringify(f.args)}`)
+    else if (f.type === 'interrupted') stopAudio()
+    else if (f.type === 'timing') add('time', Object.entries(f).filter(([k]) => k !== 'type').map(([k, v]) => `${k} ${v}`).join(' · '))
+    else if (f.type === 'end') stop()
+  }
+  ws.onclose = () => stop()
+  $('#go').textContent = 'Cortar'; $('#go').classList.add('off')
+}
+
+function play(buf) {
+  const pcm = new Int16Array(buf), b = ctx.createBuffer(1, pcm.length, outSr), ch = b.getChannelData(0)
+  for (let i = 0; i < pcm.length; i++) ch[i] = pcm[i] / 32768
+  const s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination)
+  playAt = Math.max(playAt, ctx.currentTime + 0.02); s.start(playAt); playAt += b.duration
+  sources.push(s); s.onended = () => { sources = sources.filter(x => x !== s) }
+}
+function stopAudio() { sources.forEach(s => { try { s.stop() } catch {} }); sources = []; playAt = 0 }
+function stop() {
+  stopAudio(); try { ws && ws.close() } catch {}; try { mic && mic.mediaStream.getTracks().forEach(t => t.stop()) } catch {}
+  ws = null; $('#go').textContent = 'Hablar'; $('#go').classList.remove('off'); $('#state').textContent = 'apagado'
+}
+$('#go').onclick = () => ws ? stop() : start().catch(e => add('tool', 'No pude abrir el micrófono: ' + e.message))
+$('#f').onsubmit = e => { e.preventDefault(); const v = $('#t').value.trim(); if (v && ws) { ws.send(JSON.stringify({ type: 'text', text: v })); add('me', v); $('#t').value = '' } }
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- En la tablet lo elegido no grita: un escalón más claro, como en la propuesta. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/surface3" />
+    <corners android:radius="100dp" />
+</shape>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- En la tablet Hablar es un botón redondo grande, el centro del panel de la derecha. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true"><shape android:shape="oval"><solid android:color="@color/lima_dim" /></shape></item>
+    <item><shape android:shape="oval"><solid android:color="@color/lima" /></shape></item>
+</selector>

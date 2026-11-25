@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El botón principal de una barra (Terminé la compra): lima, en píldora. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true"><shape android:shape="rectangle"><solid android:color="@color/lima_dim" /><corners android:radius="100dp" /></shape></item>
+    <item><shape android:shape="rectangle"><solid android:color="@color/lima" /><corners android:radius="100dp" /></shape></item>
+</selector>

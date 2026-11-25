@@ -1,0 +1,17 @@
+[Unit]
+Description=Heladera — lista de compras por voz
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/opt/heladera
+ExecStart=/usr/bin/env node /opt/heladera/src/cli.js server
+Restart=always
+RestartSec=3
+# La configuración vive en ~/.heladera/config.json; el .env es opcional
+EnvironmentFile=-/etc/heladera.env
+
+[Install]
+WantedBy=multi-user.target

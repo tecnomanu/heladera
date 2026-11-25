@@ -1,0 +1,19 @@
+services:
+  heladera:
+    build: .
+    container_name: heladera
+    restart: unless-stopped
+    ports: ["8790:8790"]
+    volumes: ["heladera-data:/data"]
+    environment:
+      # Todo esto también se configura desde el panel, en /admin
+      HELADERA_LANGUAGE: es
+      HELADERA_LLM_PROVIDER: ollama
+      HELADERA_LLM_URL: http://host.docker.internal:11434
+      HELADERA_LLM_MODEL: qwen3:8b
+      # HELADERA_TELEGRAM_TOKEN: ""
+      # HELADERA_TELEGRAM_CHAT_ID: ""
+    extra_hosts: ["host.docker.internal:host-gateway"]
+
+volumes:
+  heladera-data:

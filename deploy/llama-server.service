@@ -1,0 +1,24 @@
+[Unit]
+Description=llama.cpp server para heladera - Vulkan, placa dedicada
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/llama-cpp/models
+User=root
+Group=root
+# La misma placa que whisper: la idea es que heladera viva en una y el ollama
+# de siempre en la otra, para que no se peleen.
+# OJO: Vulkan numera las placas al revés que DRM. Este "0" es la SEGUNDA
+# placa (card1 en /sys/class/drm). Con el "1" que teníamos antes, whisper y el
+# modelo caían encima de ollama y la otra placa quedaba vacía.
+Environment=GGML_VK_VISIBLE_DEVICES=0
+ExecStart=/opt/llama-cpp/build/bin/llama-server \
+  --host 0.0.0.0 --port 8793 \
+  -m /opt/llama-cpp/models/qwen3-8b.gguf \
+  -ngl 99 -c 8192 -t 8 --jinja
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

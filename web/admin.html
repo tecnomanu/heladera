@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B0F0A">
+<title>Heladera · ajustes</title>
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<link rel="alternate icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style.css">
+<style>
+  .bar{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(180deg,transparent,var(--bg) 30%);padding:26px 14px calc(14px + env(safe-area-inset-bottom))}
+  .bar .inner{max-width:720px;margin:0 auto;display:flex;gap:8px}
+  .bar button{flex:1}
+  .seg{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .seg button{flex:1;min-width:104px;padding:11px 8px;font-size:13.5px;background:var(--surface2);color:var(--muted);border:1px solid var(--line);font-weight:500}
+  .seg button.sel{background:var(--lima);color:#0B0F0A;border-color:var(--lima);font-weight:700}
+  .hide{display:none}
+  pre{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:14px;overflow:auto;font-size:12.5px;line-height:1.6;color:var(--muted);max-height:320px;margin:10px 0 0;white-space:pre-wrap;word-break:break-word}
+  .tagbox{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .tag{background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:13px;display:flex;gap:7px;align-items:center}
+  .tag b{font-weight:400}
+  .tag span{color:var(--muted);cursor:pointer}
+  .pair{display:flex;align-items:center;gap:16px;margin-top:14px}.pair img{width:190px;height:190px;background:#F2F5EE;border-radius:14px;padding:10px}.pair .hint{margin:0}
+  .access{margin-bottom:16px;text-align:center}.access b{display:block;margin-bottom:6px}
+  body.unlinked .wrap > :not(header):not(.access){display:none}
+  @media(max-width:520px){.pair{align-items:stretch;flex-direction:column}.pair img{width:min(100%,250px);height:auto;margin:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="/icon.svg" alt="" class="logo">
+    <h1>AJUSTES</h1>
+    <span class="pill" id="ver">…</span>
+    <a class="pill" href="/">← la lista</a>
+  </header>
+
+  <div class="card access" id="access" hidden>
+    <b>Esta PC todavía no está vinculada</b>
+    <div class="hint">No es problema de red. Conectala usando código servidor desde Heladera → Menú → Ajustes.</div>
+    <a class="pill" href="/pair?next=%2Fadmin">Conectar esta PC</a>
+  </div>
+
+  <h2>Estado</h2>
+  <div class="card" id="statusCard">
+    <div class="status"><span class="dot"></span><span class="who">cargando…</span></div>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <button class="ghost" id="bCheck">Probar los motores</button>
+    <button class="ghost" id="bWarm">Precalentar voz</button>
+  </div>
+
+  <h2>Idioma</h2>
+  <div class="card">
+    <label>Idioma en el que le hablás</label>
+    <select id="language"></select>
+    <div class="hint">Decirle el idioma sube bastante el acierto de la transcripción:
+      sin esto, whisper tiene que adivinar y a veces se va a otro idioma parecido.</div>
+  </div>
+
+  <h2>Entender los pedidos (LLM)</h2>
+  <div class="card">
+    <div class="seg" id="llmProvider">
+      <button data-v="ollama">Ollama</button>
+      <button data-v="openai">Compatible OpenAI</button>
+    </div>
+    <label>Dirección</label><input type="text" id="llmUrl" placeholder="http://127.0.0.1:11434">
+    <label>Modelo</label>
+    <div class="row">
+      <select id="llmModelSel" style="flex:2"></select>
+      <button class="ghost" id="bModels" style="flex:0 0 auto;min-width:110px">Recargar</button>
+    </div>
+    <input type="text" id="llmModel" placeholder="o escribilo a mano" style="margin-top:8px">
+    <div class="hint" id="llmModelHint">Los modelos salen de tu servidor. Para esta tarea alcanza
+      uno chico: medimos que <code>qwen3:1.7b</code> acierta 10 de 10 en 0,5 s.</div>
+    <label class="llmKey">API key</label><input class="llmKey" type="password" id="llmKey" placeholder="opcional">
+    <label class="check"><input type="checkbox" id="llmEnabled"> Usar el modelo</label>
+    <div class="hint">Si lo apagás, la heladera igual entiende lo básico con reglas
+      (“anotá leche y pan”, “sacá el pan”, “qué falta”), pero sin normalizar cantidades.</div>
+  </div>
+
+  <h2>Voz a texto (STT)</h2>
+  <div class="card">
+    <div class="seg" id="sttProvider">
+      <button data-v="local">Whisper acá (CPU)</button>
+      <button data-v="whispercpp">whisper.cpp (GPU)</button>
+      <button data-v="openai">Compatible OpenAI</button>
+      <button data-v="custom">Mi endpoint</button>
+    </div>
+    <div id="sttLocal">
+      <label>Modelo para los pedidos</label>
+      <select id="sttModel">
+        <option value="tiny">tiny — el más rápido, menos preciso</option>
+        <option value="base">base</option>
+        <option value="small">small — el equilibrio recomendado</option>
+        <option value="medium">medium — más preciso, más lento</option>
+        <option value="large-v3">large-v3 — el mejor, pesado</option>
+      </select>
+      <label>Modelo rápido (palabra de activación)</label>
+      <select id="sttFastModel">
+        <option value="tiny">tiny</option><option value="base">base</option>
+      </select>
+      <div class="hint">El rápido corre todo el tiempo cuando está activado “manos libres”, así que conviene chico.</div>
+    </div>
+    <div id="sttRemote" class="hide">
+      <label>Dirección</label><input type="text" id="sttUrl" placeholder="http://127.0.0.1:8792">
+      <div id="sttModelBox">
+        <label>Modelo</label><input type="text" id="sttModelRemote" placeholder="whisper-1">
+      </div>
+      <div id="sttCppNote" class="hint hide">El modelo lo elige el propio whisper.cpp al arrancar
+        (<code>-m ggml-large-v3-turbo.bin</code>), no se cambia desde acá.</div>
+      <label>API key</label><input type="password" id="sttKey" placeholder="opcional">
+    </div>
+    <label>Vocabulario de contexto <span style="color:var(--muted);font-weight:400">— opcional</span></label>
+    <textarea id="sttPrompt" rows="2" placeholder="(vacío está bien)"></textarea>
+    <div class="hint">Es una ayuda, no un filtro: whisper puede transcribir cualquier palabra o marca
+      que no esté en la lista. Sirve para desempatar palabras parecidas
+      (“fideos” contra “videos”) con modelos chicos. Con un modelo grande casi no hace falta,
+      y conviene dejarlo corto: si es muy largo, el modelo empieza a meter esas palabras
+      donde no van.</div>
+  </div>
+
+  <h2>Contestar en voz (TTS)</h2>
+  <div class="card">
+    <div class="seg" id="ttsProvider">
+      <button data-v="local">Piper acá</button>
+      <button data-v="openai">Compatible OpenAI</button>
+      <button data-v="device">Que hable la tablet</button>
+      <button data-v="none">Muda</button>
+    </div>
+    <div id="ttsLocal">
+      <label>Voz de piper</label>
+      <select id="ttsVoiceSel"></select>
+      <input type="text" id="ttsVoice" placeholder="o escribí el nombre exacto" style="margin-top:8px">
+      <div class="hint">Se baja sola de HuggingFace la primera vez que la usás. El sufijo es la
+        calidad: <code>low</code> es la más rápida, <code>high</code> la que mejor suena.</div>
+    </div>
+    <div id="ttsRemote" class="hide">
+      <label>Dirección</label><input type="text" id="ttsUrl" placeholder="https://api.openai.com">
+      <label>Modelo</label><input type="text" id="ttsModel" placeholder="tts-1">
+      <label>Voz</label><input type="text" id="ttsVoiceRemote" placeholder="alloy">
+      <label>API key</label><input type="password" id="ttsKey" placeholder="opcional">
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button class="ghost" id="bTest">Probar la voz</button>
+      <button class="danger" id="bCache">Vaciar el cache</button>
+    </div>
+  </div>
+
+  <h2>Palabra de activación</h2>
+  <div class="card">
+    <div class="tagbox" id="wakeTags"></div>
+    <label>Agregar otra</label>
+    <div class="row"><input type="text" id="wakeNew" placeholder="ok tableta"><button class="ghost" id="bWake" style="flex:0 0 auto;min-width:100px">Agregar</button></div>
+    <div class="hint">Siempre dos palabras: un disparador (<code>ok</code>, <code>che</code>, <code>hola</code>)
+      y un nombre. Se compara con tolerancia, porque el modelo rápido suele escribir “ok te ableta”.</div>
+  </div>
+
+  <h2>Telegram</h2>
+  <div class="card">
+    <label class="check"><input type="checkbox" id="tgEnabled"> Mandar la lista por Telegram</label>
+    <label>Token del bot</label><input type="password" id="tgToken" placeholder="123456:ABC…">
+    <label>Chat ID</label><input type="text" id="tgChatId" placeholder="889721252">
+  </div>
+
+  <h2>Lo que va pasando</h2>
+  <div class="card">
+    <div class="seg" id="actTab">
+      <button data-v="eventos" class="sel">Actividad</button>
+      <button data-v="lista">La lista</button>
+      <button data-v="frases">Frases guardadas</button>
+    </div>
+    <pre id="actividad">cargando…</pre>
+    <label class="check"><input type="checkbox" id="actAuto" checked> Actualizar solo</label>
+  </div>
+
+  <h2>Motores locales</h2>
+  <div class="card">
+    <div id="sidecarState" class="hint">…</div>
+    <div class="row" style="margin-top:12px">
+      <button class="ghost" id="bScStart">Arrancar</button>
+      <button class="ghost" id="bScStop">Parar</button>
+      <button class="ghost" id="bScLog">Ver log</button>
+    </div>
+    <pre id="scLog" class="hide"></pre>
+  </div>
+
+  <h2>La tablet</h2>
+  <div class="card">
+    <div class="hint">Vinculá celular o tablet sin escribir servidor, IP ni código.</div>
+    <div class="row" style="margin-top:12px"><button class="ghost" id="bPair">Vincular app con QR</button></div>
+    <div class="pair hide" id="pairBox">
+      <img id="pairQr" alt="QR para vincular Heladera">
+      <div>
+        <div class="hint"><b>1.</b> Abrí Heladera y tocá <b>Escanear QR</b>.<br><b>2.</b> Escaneá este código.<br><br>Queda vinculada sola. QR temporal, sirve una vez.</div>
+        <a class="pill" id="pairLink" href="/pair" target="_blank" style="display:inline-block;margin-top:12px">Abrir página de emparejado →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bar"><div class="inner">
+  <button id="bSave">Guardar</button>
+</div></div>
+
+<script type="module">
+import { grabToken, api, toast } from '/common.js'
+const webToken = grabToken()
+
+let cfg = null
+const $ = id => document.getElementById(id)
+
+// Los que whisper transcribe bien. Se muestran en el idioma de cada uno para
+// que se reconozcan de un vistazo.
+const IDIOMAS = [
+  ['es', 'Español'], ['en', 'English'], ['pt', 'Português'], ['it', 'Italiano'],
+  ['fr', 'Français'], ['de', 'Deutsch'], ['ca', 'Català'], ['gl', 'Galego'],
+  ['eu', 'Euskara'], ['nl', 'Nederlands'], ['pl', 'Polski'], ['ru', 'Русский'],
+  ['uk', 'Українська'], ['tr', 'Türkçe'], ['ar', 'العربية'], ['he', 'עברית'],
+  ['hi', 'हिन्दी'], ['zh', '中文'], ['ja', '日本語'], ['ko', '한국어'],
+  ['id', 'Bahasa Indonesia'], ['vi', 'Tiếng Việt'], ['th', 'ไทย'],
+  ['sv', 'Svenska'], ['no', 'Norsk'], ['da', 'Dansk'], ['fi', 'Suomi'],
+  ['cs', 'Čeština'], ['el', 'Ελληνικά'], ['ro', 'Română'], ['hu', 'Magyar'],
+]
+
+// Voces de piper (rhasspy/piper-voices). Se bajan solas la primera vez.
+const VOCES = [
+  ['es_AR-daniela-high', 'Español · Argentina · Daniela'],
+  ['es_ES-davefx-medium', 'Español · España · Davefx'],
+  ['es_ES-sharvard-medium', 'Español · España · Sharvard'],
+  ['es_ES-carlfm-x_low', 'Español · España · Carlfm (rápida)'],
+  ['es_MX-claude-high', 'Español · México · Claude'],
+  ['es_MX-ald-medium', 'Español · México · Ald'],
+  ['en_US-amy-medium', 'English · US · Amy'],
+  ['en_US-lessac-high', 'English · US · Lessac'],
+  ['en_GB-alba-medium', 'English · UK · Alba'],
+  ['pt_BR-faber-medium', 'Português · Brasil · Faber'],
+  ['pt_PT-tugão-medium', 'Português · Portugal · Tugão'],
+  ['it_IT-riccardo-x_low', 'Italiano · Riccardo'],
+  ['fr_FR-siwis-medium', 'Français · Siwis'],
+  ['de_DE-thorsten-high', 'Deutsch · Thorsten'],
+  ['ca_ES-upc_ona-medium', 'Català · Ona'],
+  ['nl_NL-mls-medium', 'Nederlands · MLS'],
+  ['pl_PL-darkman-medium', 'Polski · Darkman'],
+  ['ru_RU-dmitri-medium', 'Русский · Dmitri'],
+  ['tr_TR-dfki-medium', 'Türkçe · DFKI'],
+  ['zh_CN-huayan-medium', '中文 · Huayan'],
+]
+
+function fillSelect(el, pares, valor) {
+  el.innerHTML = pares.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')
+  if (valor && !pares.some(([v]) => v === valor)) {
+    el.insertAdjacentHTML('afterbegin', `<option value="${valor}">${valor} (actual)</option>`)
+  }
+  el.value = valor
+}
+
+function seg(id, value, onPick) {
+  const box = $(id)
+  for (const b of box.querySelectorAll('button')) {
+    b.classList.toggle('sel', b.dataset.v === value)
+    b.onclick = () => { seg(id, b.dataset.v, onPick); onPick(b.dataset.v) }
+  }
+}
+
+function paintWake() {
+  const box = $('wakeTags')
+  box.innerHTML = ''
+  cfg.wakeWords.forEach((w, i) => {
+    const el = document.createElement('div')
+    el.className = 'tag'
+    el.innerHTML = '<b></b><span>×</span>'
+    el.querySelector('b').textContent = w
+    el.querySelector('span').onclick = () => { cfg.wakeWords.splice(i, 1); paintWake() }
+    box.appendChild(el)
+  })
+}
+
+function fill() {
+  fillSelect($('language'), IDIOMAS, cfg.language)
+  $('llmUrl').value = cfg.llm.url; $('llmModel').value = ''
+  fillSelect($('llmModelSel'), [[cfg.llm.model, cfg.llm.model]], cfg.llm.model)
+  $('llmKey').value = cfg.llm.apiKey || ''; $('llmEnabled').checked = cfg.llm.enabled
+  seg('llmProvider', cfg.llm.provider, v => {
+    cfg.llm.provider = v
+    document.querySelectorAll('.llmKey').forEach(e => e.classList.toggle('hide', v === 'ollama'))
+  })
+  document.querySelectorAll('.llmKey').forEach(e => e.classList.toggle('hide', cfg.llm.provider === 'ollama'))
+
+  $('sttModel').value = cfg.stt.model; $('sttFastModel').value = cfg.stt.fastModel
+  $('sttUrl').value = cfg.stt.url; $('sttModelRemote').value = cfg.stt.model
+  $('sttKey').value = cfg.stt.apiKey || ''; $('sttPrompt').value = cfg.stt.prompt || ''
+  const sttPaint = v => {
+    cfg.stt.provider = v
+    $('sttLocal').classList.toggle('hide', v !== 'local')
+    $('sttRemote').classList.toggle('hide', v === 'local')
+    // whisper.cpp lleva el modelo en su propia línea de comandos
+    $('sttModelBox').classList.toggle('hide', v === 'whispercpp')
+    $('sttCppNote').classList.toggle('hide', v !== 'whispercpp')
+    // whisper.cpp lleva el modelo en la línea de comandos del server, no acá
+    $('sttModelRemote').parentElement.querySelectorAll('label').forEach(() => {})
+  }
+  seg('sttProvider', cfg.stt.provider, sttPaint); sttPaint(cfg.stt.provider)
+
+  $('ttsVoice').value = ''; $('ttsVoiceRemote').value = cfg.tts.voice
+  fillSelect($('ttsVoiceSel'), VOCES, cfg.tts.voice)
+  $('ttsUrl').value = cfg.tts.url; $('ttsModel').value = cfg.tts.model; $('ttsKey').value = cfg.tts.apiKey || ''
+  const ttsPaint = v => {
+    cfg.tts.provider = v
+    $('ttsLocal').classList.toggle('hide', v !== 'local')
+    $('ttsRemote').classList.toggle('hide', v !== 'openai')
+  }
+  seg('ttsProvider', cfg.tts.provider, ttsPaint); ttsPaint(cfg.tts.provider)
+
+  $('tgEnabled').checked = cfg.telegram.enabled
+  $('tgToken').value = cfg.telegram.token || ''; $('tgChatId').value = cfg.telegram.chatId || ''
+  paintWake()
+}
+
+function collect() {
+  const p = {
+    language: $('language').value || 'es',
+    wakeWords: cfg.wakeWords,
+    llm: { provider: cfg.llm.provider, url: $('llmUrl').value.trim(), model: ($('llmModel').value.trim() || $('llmModelSel').value), apiKey: $('llmKey').value, enabled: $('llmEnabled').checked },
+    stt: { provider: cfg.stt.provider, prompt: $('sttPrompt').value.trim() },
+    tts: { provider: cfg.tts.provider },
+    telegram: { enabled: $('tgEnabled').checked, token: $('tgToken').value, chatId: $('tgChatId').value.trim() },
+  }
+  if (cfg.stt.provider === 'local') {
+    p.stt.model = $('sttModel').value; p.stt.fastModel = $('sttFastModel').value
+    p.stt.url = 'http://127.0.0.1:' + cfg.sidecar.port
+  } else {
+    p.stt.url = $('sttUrl').value.trim(); p.stt.model = $('sttModelRemote').value.trim(); p.stt.apiKey = $('sttKey').value
+  }
+  if (cfg.tts.provider === 'local') {
+    p.tts.voice = ($('ttsVoice').value.trim() || $('ttsVoiceSel').value); p.tts.url = 'http://127.0.0.1:' + cfg.sidecar.port
+  } else if (cfg.tts.provider === 'openai') {
+    p.tts.url = $('ttsUrl').value.trim(); p.tts.model = $('ttsModel').value.trim()
+    p.tts.voice = $('ttsVoiceRemote').value.trim(); p.tts.apiKey = $('ttsKey').value
+  }
+  return p
+}
+
+function paintStatus(checks, health) {
+  const rows = []
+  const add = (who, ok, what) => rows.push(
+    `<div class="status"><span class="dot ${ok ? 'ok' : 'bad'}"></span><span class="who">${who}</span><span class="what">${what}</span></div>`)
+  if (health) {
+    add('servidor', true, `${health.pending} pendientes · idioma ${health.language}`)
+    add('cache de voz', true, `${health.ttsCache.files} frases guardadas`)
+  }
+  if (checks) {
+    add('stt', checks.stt.ok, checks.stt.detail)
+    add('tts', checks.tts.ok, checks.tts.detail)
+    add('llm', checks.llm.ok, checks.llm.detail + (checks.llm.sample ? ` · “${checks.llm.sample}”` : ''))
+  }
+  $('statusCard').innerHTML = rows.join('')
+  if (health?.sidecar) {
+    const s = health.sidecar
+    $('sidecarState').textContent = s.installed
+      ? `Instalado${s.running ? ' y corriendo (pid ' + s.pid + ')' : ', apagado'}. Voces: ${s.voices.join(', ') || 'ninguna'}`
+      : 'No instalado. Corré `heladera init` o elegí motores remotos arriba.'
+  }
+}
+
+async function load() {
+  cfg = await api('/api/config')
+  fill()
+  const h = await api('/api/health')
+  $('ver').textContent = 'v' + h.version
+  paintStatus(null, h)
+  cargarModelos()
+  verActividad('eventos')
+}
+
+async function cargarModelos() {
+  try {
+    const r = await api('/api/config/models')
+    const ms = r.models || []
+    if (!ms.length) { $('llmModelHint').textContent = 'No pude leer los modelos: revisá la dirección.'; return }
+    fillSelect($('llmModelSel'), ms.map(m => [m, m]), cfg.llm.model)
+    $('llmModelHint').innerHTML = ms.length + ' modelos en tu servidor. Para esta tarea alcanza uno chico: '
+      + 'medimos que <code>qwen3:1.7b</code> acierta 10 de 10 en 0,5 s.'
+  } catch (e) { $('llmModelHint').textContent = 'No pude leer los modelos: ' + e.message }
+}
+$('bModels').onclick = () => { toast('Buscando modelos…'); cargarModelos() }
+
+async function verActividad(que) {
+  const box = $('actividad')
+  try {
+    if (que === 'frases') {
+      const h = await api('/api/health')
+      box.textContent = `${h.ttsCache.files} frases guardadas (${Math.round(h.ttsCache.bytes / 1024)} KB)\n\n`
+        + (h.ttsPhrases || []).map(f => '  ' + f).join('\n')
+    } else if (que === 'lista') {
+      const l = await api('/api/list')
+      box.textContent = l.items.length
+        ? l.items.map(i => `  ${i.done ? '✓' : '○'} ${[i.qty, i.unit, i.name].filter(Boolean).join(' ')}`
+            + (i.cat ? `   · ${i.cat}` : '')).join('\n')
+        : '  (vacía)'
+    } else {
+      const e = await api('/api/events?limit=30')
+      box.textContent = e.events.map(x => {
+        const hora = x.ts.slice(11, 19)
+        const t = (x.text || '').replace(/\s+/g, ' ').slice(0, 64)
+        if (x.kind === 'turno') {
+          const r = x.payload?.reply || ''
+          return `${hora}  « ${t} »\n          ${r}`
+        }
+        const etiqueta = {
+          wake: 'te escuchó', telegram: 'enviado por Telegram', 'roby-queued': 'en cola para WhatsApp',
+          confirmar: 'preguntó', clear: 'lista vaciada', 'close-trip': 'compra cerrada',
+          undo: 'volvió atrás', 'add-manual': 'agregado a mano', config: 'configuración',
+        }[x.kind] || x.kind
+        return `${hora}  ${etiqueta}${t ? ': ' + t : ''}`
+      }).join('\n')
+    }
+  } catch (e) { box.textContent = 'Error: ' + e.message }
+}
+let actQue = 'eventos'
+for (const b of $('actTab').querySelectorAll('button')) {
+  b.onclick = () => {
+    actQue = b.dataset.v
+    for (const o of $('actTab').querySelectorAll('button')) o.classList.toggle('sel', o === b)
+    verActividad(actQue)
+  }
+}
+setInterval(() => { if ($('actAuto').checked && !document.hidden) verActividad(actQue) }, 4000)
+
+$('bSave').onclick = async () => {
+  $('bSave').disabled = true
+  try {
+    cfg = await api('/api/config', { method: 'POST', body: JSON.stringify(collect()) })
+    fill(); toast('Guardado')
+    const h = await api('/api/health'); paintStatus(null, h)
+  } catch (e) { toast(e.message, true) } finally { $('bSave').disabled = false }
+}
+
+$('bCheck').onclick = async () => {
+  $('bCheck').disabled = true; toast('Probando…')
+  try {
+    const [checks, health] = await Promise.all([api('/api/config/check', { method: 'POST' }), api('/api/health')])
+    paintStatus(checks, health)
+    toast(Object.values(checks).every(c => c.ok !== false) ? 'Todo responde' : 'Hay algo caído, mirá arriba',
+      !Object.values(checks).every(c => c.ok !== false))
+  } catch (e) { toast(e.message, true) } finally { $('bCheck').disabled = false }
+}
+
+$('bWarm').onclick = () => api('/api/tts/prewarm', { method: 'POST' })
+  .then(r => toast(`${r.cached} frases listas`)).catch(e => toast(e.message, true))
+
+$('bPair').onclick = async () => {
+  const button = $('bPair')
+  button.disabled = true
+  try {
+    const pair = await api('/api/pair/create', { method: 'POST' })
+    $('pairQr').src = pair.qrUrl
+    $('pairLink').href = pair.pageUrl
+    $('pairBox').classList.remove('hide')
+  } catch (e) { toast(e.message, true) } finally { button.disabled = false }
+}
+
+$('bTest').onclick = async () => {
+  const button = $('bTest')
+  const originalText = button.textContent
+  button.disabled = true
+  button.setAttribute('aria-busy', 'true')
+  button.textContent = 'Preparando voz…'
+  try {
+    const r = await api('/api/tts', {
+      method: 'POST',
+      body: JSON.stringify({ text: 'Listo, anoté la leche y el pan.', tts: collect().tts }),
+    })
+    if (!r.audioUrl) return toast('Este motor habla en la tablet, no acá')
+    const token = localStorage.getItem('heladera.token') || ''
+    const audio = new Audio(r.audioUrl + (token ? '?token=' + token : ''))
+    await new Promise((resolve, reject) => {
+      audio.addEventListener('playing', () => { button.textContent = 'Sonando…' }, { once: true })
+      audio.addEventListener('ended', resolve, { once: true })
+      audio.addEventListener('error', () => reject(new Error('No pude reproducir la voz')), { once: true })
+      audio.play().catch(reject)
+    })
+  } catch (e) { toast(e.message, true) } finally {
+    button.disabled = false
+    button.removeAttribute('aria-busy')
+    button.textContent = originalText
+  }
+}
+
+$('bCache').onclick = () => api('/api/tts/cache', { method: 'DELETE' }).then(() => toast('Cache vacío')).catch(e => toast(e.message, true))
+$('bWake').onclick = () => {
+  const v = $('wakeNew').value.trim().toLowerCase()
+  if (v && !cfg.wakeWords.includes(v)) { cfg.wakeWords.push(v); $('wakeNew').value = ''; paintWake() }
+}
+$('bScStart').onclick = () => api('/api/sidecar/start', { method: 'POST' }).then(() => { toast('Arrancado'); load() }).catch(e => toast(e.message, true))
+$('bScStop').onclick = () => api('/api/sidecar/stop', { method: 'POST' }).then(() => { toast('Parado'); load() }).catch(e => toast(e.message, true))
+$('bScLog').onclick = async () => {
+  const r = await api('/api/sidecar/log')
+  $('scLog').textContent = r.log || '(vacío)'
+  $('scLog').classList.remove('hide')
+}
+
+load().catch(e => {
+  if (!webToken && String(e.message || '').includes('no está vinculada')) {
+    document.body.classList.add('unlinked')
+    $('access').hidden = false
+    return
+  }
+  toast(e.message, true)
+})
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#FF0A0D09</color>
+    <color name="surface">#FF12170F</color>
+    <color name="surface2">#FF1A2115</color>
+    <color name="surface3">#FF242D1D</color>
+    <color name="line">#FF344029</color>
+    <color name="lima">#FFC7F536</color>
+    <color name="lima_dim">#FF8FB024</color>
+    <color name="text">#FFF2F5EE</color>
+    <color name="muted">#FF8E977F</color>
+    <color name="danger">#FFFF6B5A</color>
+    <color name="cyan">#FF6FD3FF</color>
+    <color name="black">#FF000000</color>
+</resources>

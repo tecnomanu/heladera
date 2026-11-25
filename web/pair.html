@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B0F0A">
+<title>Conectar la tablet</title>
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<link rel="alternate icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style.css">
+<style>
+  .big{display:block;width:100%;padding:18px;font-size:17px;text-align:center;text-decoration:none;border-radius:16px;background:var(--lima);color:#0B0F0A;font-weight:800;margin:16px 0 0}
+  .qr-card{text-align:center}.qr-card img{display:block;width:min(72vw,280px);height:auto;margin:16px auto;background:#F2F5EE;border-radius:14px;padding:12px}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:15px}
+  .kv:last-child{border-bottom:0}
+  .kv b{font-weight:600;color:var(--muted)}
+  .kv span{font-family:ui-monospace,Menlo,monospace;color:var(--text);word-break:break-all;text-align:right}
+  ol{padding-left:20px;color:var(--muted);font-size:14px;line-height:1.8}
+  ol b{color:var(--text);font-weight:600}
+  .recover{margin-top:18px}.recover .row{margin-top:12px}.recover button{width:100%}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>CONECTAR LA TABLET</h1></header>
+
+  <div class="card qr-card" id="qrCard" hidden>
+    <div class="hint"><b>Escaneá este QR desde celular o tablet.</b><br>Abre Heladera y queda vinculada sola.</div>
+    <img id="qr" alt="QR para vincular Heladera">
+    <div class="hint">Este QR vence pronto y sirve una sola vez.</div>
+  </div>
+
+  <div class="card" id="openCard" hidden style="margin-top:12px">
+    <div class="hint" id="intro">¿Estás viendo esta página desde mismo dispositivo? Abrí app directamente.</div>
+    <a class="big" id="deep" href="#">Abrir y vincular Heladera</a>
+  </div>
+
+  <details id="manual" style="margin-top:18px" hidden>
+    <summary>Vincular a mano</summary>
+    <div class="card" style="margin-top:10px">
+      <div class="kv"><b>servidor</b><span id="srv">…</span></div>
+      <div class="kv"><b>código</b><span id="code">…</span></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+    <ol>
+      <li>En la tablet, abrí <b>Heladera</b></li>
+      <li>Tocá <b>ajustes</b>, arriba a la derecha</li>
+      <li>Pegá el servidor y el código</li>
+      <li><b>Guardar</b></li>
+    </ol>
+    </div>
+  </details>
+
+  <div class="card recover" id="recover" hidden>
+    <b>Recuperar acceso web</b>
+    <div class="hint">Esta página vincula Android. Si lista o admin te mandaron acá, pegá código servidor (primeros 8 caracteres) y volvés sin perder nada.</div>
+    <div class="row"><input id="webCode" type="text" inputmode="text" autocomplete="off" autocapitalize="none" maxlength="128" placeholder="Código servidor"></div>
+    <div class="row"><button id="recoverButton">Abrir</button></div>
+    <div class="hint" id="recoverHint">Lo ves en Heladera → Menú → Ajustes. En próximos ingresos, navegador queda vinculado.</div>
+  </div>
+</div>
+
+<script>
+(async () => {
+  const origin = location.origin
+  document.getElementById('srv').textContent = origin
+  let token = ''
+  const match = /[#&]code=([^&]+)/i.exec(location.hash)
+  const code = match ? decodeURIComponent(match[1]) : ''
+  const ticket = code.length > 12
+  let deep = ''
+
+  if (ticket) {
+    deep = 'heladera://pair?server=' + encodeURIComponent(origin) + '&code=' + encodeURIComponent(code)
+    document.getElementById('qr').src = '/api/pair/qr?code=' + encodeURIComponent(code)
+    document.getElementById('qrCard').hidden = false
+  }
+  try {
+    const legacyCode = ticket ? '' : (code || (localStorage.getItem('heladera.token') || '').slice(0, 8))
+    if (legacyCode) {
+      const r = await fetch('/api/pair/claim', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: legacyCode }),
+      })
+      if (r.ok) token = (await r.json()).token || ''
+    }
+  } catch (e) { /* seguimos con el modo manual */ }
+
+  const shown = token || (localStorage.getItem('heladera.token') || '')
+  document.getElementById('code').textContent = shown ? shown.slice(0, 8) : 'sin código disponible'
+
+  if (!deep && token) deep = 'heladera://pair?server=' + encodeURIComponent(origin) + '&token=' + token
+  const a = document.getElementById('deep')
+  a.href = deep
+  if (deep) {
+    document.getElementById('openCard').hidden = false
+    a.onclick = () => {
+    setTimeout(() => {
+      document.getElementById('intro').innerHTML =
+        'Si no se abrió la app, todavía no está instalada en este dispositivo. ' +
+        'Instalá el APK y volvé a tocar el botón.'
+    }, 1500)
+    }
+  } else {
+    document.getElementById('manual').hidden = false
+    const recover = document.getElementById('recover')
+    recover.hidden = false
+    document.getElementById('recoverButton').onclick = async () => {
+      const input = document.getElementById('webCode')
+      const value = input.value.trim()
+      if (!value) { input.focus(); return }
+      const button = document.getElementById('recoverButton')
+      button.disabled = true
+      button.textContent = 'Vinculando…'
+      try {
+        const r = await fetch('/api/pair/claim', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: value }),
+        })
+        const data = await r.json()
+        if (!r.ok || !data.token) throw new Error(data.error || 'código inválido')
+        localStorage.setItem('heladera.token', data.token)
+        const next = new URLSearchParams(location.search).get('next') || '/'
+        location.replace(next)
+      } catch (e) {
+        button.disabled = false
+        button.textContent = 'Abrir'
+        document.getElementById('recoverHint').textContent = 'No pude vincular: ' + e.message
+      }
+    }
+  }
+})()
+</script>
+</body>
+</html>

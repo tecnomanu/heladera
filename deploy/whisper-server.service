@@ -1,0 +1,20 @@
+[Unit]
+Description=whisper.cpp server (large-v3-turbo) - Vulkan / RX 5700 XT #2
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/whisper-cpp/models
+User=root
+Group=root
+# La placa 1 a propósito: la 0 la usa ollama y cuando comparten se cuelga.
+Environment=GGML_VK_VISIBLE_DEVICES=0
+ExecStart=/opt/whisper-cpp/build/bin/whisper-server \
+  --host 0.0.0.0 --port 8792 \
+  -m /opt/whisper-cpp/models/ggml-large-v3-turbo.bin \
+  -l es -t 8
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

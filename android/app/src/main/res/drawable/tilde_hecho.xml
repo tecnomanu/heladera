@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ya en el changuito: círculo lleno con el tilde recortado. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape android:shape="oval"><solid android:color="@color/lima_dim" /><size android:width="30dp" android:height="30dp" /></shape></item>
+    <item android:drawable="@drawable/ic_tilde" android:left="7dp" android:top="7dp" android:right="7dp" android:bottom="7dp" />
+</layer-list>

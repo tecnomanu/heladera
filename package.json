@@ -1,0 +1,16 @@
+{
+  "name": "heladera",
+  "version": "2.1.0",
+  "description": "Lista de compras por voz para una tablet pegada a la heladera",
+  "type": "module",
+  "bin": { "heladera": "src/cli.js" },
+  "engines": { "node": ">=18" },
+  "files": ["src", "web", "engines-py", "voz/server.py", "voz/tools.py", "voz/index.html", "voz/requirements.txt", "voz/README.md", "deploy/heladera.service", "deploy/setup-tablet.sh", "README.md", "LICENSE"],
+  "scripts": { "start": "node src/cli.js server" },
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/tecnomanu/heladera.git" },
+  "homepage": "https://github.com/tecnomanu/heladera#readme",
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  }
+}

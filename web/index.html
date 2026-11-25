@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B0F0A">
+<title>La lista</title>
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<link rel="alternate icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style.css">
+<style>
+  ul{list-style:none;margin:0;padding:2px 0;position:relative}
+  li.item{display:flex;align-items:center;gap:2px;padding:5px 6px;min-height:58px;
+    -webkit-tap-highlight-color:transparent;background:var(--surface);
+    touch-action:pan-y;user-select:none;-webkit-user-select:none;border-radius:12px}
+  li.item.sub{margin-left:30px}
+
+  svg.ico{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;
+    stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+  .grip{width:26px;height:44px;flex:0 0 auto;display:grid;place-items:center;
+    cursor:grab;touch-action:none;color:#333C28}
+  .grip svg{width:20px;height:20px;fill:currentColor;stroke:none}
+  li:hover .grip{color:#6A7558}
+
+  li .mark{width:26px;height:26px;border-radius:50%;border:2px solid #3D4633;flex:0 0 auto;
+    display:grid;place-items:center;font-size:14px;color:#0B0F0A;margin-left:4px;position:relative}
+  li .hit{padding:10px 8px;display:flex;align-items:center;flex:0 0 auto}
+  li.done .mark{background:var(--lima);border-color:var(--lima)}
+  li.done .mark::after{content:"\2713";font-weight:800}
+  li .body{flex:1;min-width:0;padding:4px 10px;cursor:pointer}
+  li .name{font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  li.done .name{text-decoration:line-through;color:#5C6552}
+  li .sub2{font-size:12px;color:var(--muted);margin-top:3px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  li .sub2 b{color:var(--lima);font-weight:600}
+  li .sub2 b.tarde{color:var(--danger)}
+  li .fav{color:#333C28;padding:11px 6px;flex:0 0 auto;display:flex}
+  li .fav.on{color:var(--lima)}
+  li .fav.on svg{fill:var(--lima)}
+  li .del{color:#333C28;padding:12px 6px;font-size:20px;flex:0 0 auto;line-height:1}
+  li .del:active,li .del:hover{color:var(--danger)}
+
+  /* al tachar: florece el tilde, se desvanece y el hueco se cierra */
+  li.item.yendose{overflow:hidden;transition:opacity .16s,transform .16s}
+  li.item.yendose .mark{background:var(--lima);border-color:var(--lima);animation:brote .42s ease-out}
+  li.item.yendose .mark::after{content:"\2713";font-weight:800}
+  li.item.yendose .mark::before{content:"";position:absolute;inset:-4px;border-radius:50%;
+    border:2px solid var(--lima);animation:onda .45s ease-out forwards}
+  @keyframes brote{0%{transform:scale(.6)}45%{transform:scale(1.25)}100%{transform:scale(1)}}
+  @keyframes onda{0%{transform:scale(.7);opacity:.9}100%{transform:scale(2.1);opacity:0}}
+  li.item.yendose.cerrando{opacity:0;transform:scale(.97);height:0!important;min-height:0;
+    padding-top:0;padding-bottom:0;margin-top:0;margin-bottom:0;
+    transition:opacity .16s,transform .16s,height .26s cubic-bezier(.4,0,.2,1),padding .26s,margin .26s}
+
+  /* encabezado de una lista */
+  /* el título va arriba y al borde: el aire de más hacía ver la card vacía */
+  li.head{display:flex;align-items:center;gap:2px;padding:8px 6px 2px;
+    -webkit-tap-highlight-color:transparent;user-select:none;background:var(--surface);
+    border-radius:12px;touch-action:pan-y}
+  li.head:first-child{padding-top:2px}
+  /* el hueco del chevron mide lo mismo que el círculo de tachar, y el título
+     arranca exactamente donde arrancan los nombres de los renglones */
+  li.head .chev,li.head .hueco{width:46px;height:24px;flex:0 0 auto;display:grid;place-items:center}
+  li.head .chev{color:#5C6552;transition:transform .15s;transform:rotate(90deg)}
+  li.head.cerrada .chev{transform:none}
+  li.head .tit{flex:1;min-width:0;font-size:13px;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--lima);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    padding-left:10px}
+  li.head .cuenta{font-size:12px;color:var(--muted)}
+  li.head .mas{color:var(--muted);font-size:19px;padding:0 10px;line-height:1;
+    letter-spacing:1px;cursor:pointer}
+  /* la agarradera del encabezado no tiene por qué medir lo que la de una fila:
+     estiraba el renglón a 48px y el título quedaba flotando */
+  li.head .grip{width:26px;height:24px}
+  li.fin{height:8px;padding:0;margin-left:30px}
+
+  ul.dragging li{transition:transform .16s cubic-bezier(.2,0,0,1)}
+  li.drag{transition:none!important;background:var(--surface2);
+    box-shadow:0 12px 26px rgba(0,0,0,.55);z-index:3;position:relative}
+  li.fin.drag{box-shadow:none;background:transparent}
+  li.item.nuevo{animation:destello 1.6s ease-out}
+  @keyframes destello{0%{background:#2A3A14}60%{background:#212C15}100%{background:var(--surface)}}
+
+  body.eligiendo .grip,body.eligiendo li .del,body.eligiendo li .fav,
+  body.eligiendo li.head .mas{display:none}
+  .pick{width:26px;height:44px;flex:0 0 auto;display:none;place-items:center;color:#4A5340}
+  body.eligiendo .pick{display:grid}
+  .pick .si{display:none}
+  li.sel .pick{color:var(--cyan)}
+  li.sel .pick .no{display:none}
+  li.sel .pick .si{display:block}
+  li.item.sel{background:#1B2714}
+
+  /* la card de completadas */
+  .hechas{margin-top:12px}
+  .hechas .cab{display:flex;align-items:center;gap:10px;padding:4px 6px;cursor:pointer;user-select:none}
+  .hechas .cab .tit{flex:1;font-size:13px;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--muted);font-weight:700}
+  .hechas .cab .chev{color:#5C6552;transition:transform .15s;display:grid;place-items:center}
+  .hechas.abierta .cab .chev{transform:rotate(90deg)}
+  .hechas .vaciar{font-size:12.5px;color:var(--muted);padding:6px 12px;border-radius:999px;
+    border:1px solid var(--line);background:transparent;font-weight:500}
+  .hechas ul{display:none;padding-top:6px}
+  .hechas.abierta ul{display:block}
+
+  /* solapas de listas */
+  .tabs{display:flex;gap:7px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button{flex:0 0 auto;background:var(--surface2);color:var(--muted);border:1px solid var(--line);
+    border-radius:999px;padding:9px 16px;font-size:14px;font-weight:600}
+  .tabs button.sel{background:var(--lima);color:#0B0F0A;border-color:var(--lima)}
+  .seg{display:inline-flex;background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:3px}
+  .seg button{background:transparent;color:var(--muted);border:0;border-radius:999px;
+    padding:6px 14px;font-size:13px;font-weight:600}
+  .seg button.sel{background:var(--lima);color:#0B0F0A}
+
+  .empty{padding:48px 16px;text-align:center;color:var(--muted)}
+  .composer{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(180deg,transparent,var(--bg) 22%);padding:22px 14px calc(14px + env(safe-area-inset-bottom))}
+  .composer .inner{max-width:720px;margin:0 auto;display:flex;gap:8px}
+  .composer.oculto{display:none}
+  .barra{position:fixed;left:0;right:0;bottom:0;background:var(--surface2);border-top:1px solid var(--line);
+    padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:none;gap:8px;z-index:8}
+  .barra.on{display:flex}
+  .barra button{flex:1;padding:11px 6px;font-size:13px}
+  .actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .actions button{flex:1;min-width:132px;padding:12px 10px;font-size:14px;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px}
+  .actions button svg.ico{width:18px;height:18px}
+  .pill.tap{cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .toast{bottom:96px}
+  .access{margin-bottom:14px;text-align:center}.access b{display:block;margin-bottom:6px}
+
+  /* la hoja con campos (el detalle de un renglon) */
+  .sheet .campo{padding:4px 22px 10px}
+  .sheet .campo label{margin:10px 0 5px}
+  .sheet .pie{display:flex;gap:8px;padding:10px 18px 4px}
+  .sheet .pie button{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="/icon.svg" alt="" class="logo">
+    <h1>LA LISTA</h1>
+    <span class="seg" id="modo">
+      <button data-modo="todo" class="sel">Todo</button>
+      <button data-modo="listas">Listas</button>
+    </span>
+    <span class="pill tap" id="bAll" hidden>Todas</span>
+    <span class="pill tap" id="bPick">Elegir</span>
+    <span class="pill tap" id="bSort">Orden</span>
+    <span class="pill" id="count">...</span>
+    <a class="pill" href="/admin">Ajustes</a>
+  </header>
+
+  <div class="card access" id="access" hidden>
+    <b>Esta PC todavía no está vinculada</b>
+    <div class="hint">No es problema de red. Abrí conexión y pegá código servidor desde Heladera → Menú → Ajustes.</div>
+    <a class="pill" href="/pair?next=%2F">Conectar esta PC</a>
+  </div>
+
+  <div class="tabs" id="tabs" hidden></div>
+
+  <div class="card tight"><ul id="list"><li class="empty">Cargando...</li></ul></div>
+
+  <div class="card hechas" id="hechas" hidden>
+    <div class="cab">
+      <span class="chev"></span>
+      <span class="tit" id="hechasTit">Completadas</span>
+      <button class="vaciar" id="bVaciar">Vaciar</button>
+    </div>
+    <ul id="listaHechas"></ul>
+  </div>
+
+  <div class="actions">
+    <button class="ghost" id="bTg">Telegram</button>
+    <button class="ghost" id="bRoby">WhatsApp</button>
+    <button class="ghost" id="bUndo">Deshacer</button>
+    <button class="ghost" id="bClose">Cerrar compra</button>
+  </div>
+</div>
+
+<div class="composer" id="composer"><div class="inner">
+  <input type="text" id="entry" placeholder="Agregar... (ej: 2 litros de leche)" autocomplete="off" enterkeyhint="done">
+  <button id="bAdd">Agregar</button>
+</div></div>
+
+<div class="barra" id="barra">
+  <button class="ghost" id="sList">A una lista...</button>
+  <button class="ghost" id="sDone">Tachar</button>
+  <button class="ghost" id="sDel">Borrar</button>
+  <button id="sEnd">Listo</button>
+</div>
+
+<div class="sheet" id="sheet">
+  <div class="veil"></div>
+  <div class="panel" id="panel"></div>
+</div>
+
+<script type="module">
+import { grabToken, api, toast } from '/common.js'
+const webToken = grabToken()
+
+fetch('/iconos.svg').then(r => r.text()).then(t => {
+  const d = document.createElement('div'); d.innerHTML = t; document.body.appendChild(d)
+})
+
+const ico = (n, cls = '') => `<svg class="ico ${cls}"><use href="#i-${n}"></use></svg>`
+const cap = s => s ? s[0].toUpperCase() + s.slice(1) : ''
+const ul = document.getElementById('list')
+const ulHechas = document.getElementById('listaHechas')
+const GENERAL = 'General'
+
+let rev = null, vistos = null, estado = { items: [], pending: 0 }
+let cerradas = new Set(JSON.parse(localStorage.getItem('heladera.cerradas') || '[]'))
+let modo = localStorage.getItem('heladera.modo') || 'todo'
+let solapa = localStorage.getItem('heladera.solapa') || GENERAL
+let verHechas = localStorage.getItem('heladera.verHechas') === '1'
+let eligiendo = false, elegidos = new Set()
+
+// El núcleo guarda palabras canónicas en inglés ('l', 'dairy'); el server nos
+// pasa cómo se escriben en el idioma de la casa.
+let PALABRAS = { categories: {}, units: {} }
+fetch('/api/labels').then(r => r.json()).then(d => { PALABRAS = d; rev = null; render() }).catch(() => {})
+
+const unidadDe = u => PALABRAS.units[u] !== undefined ? PALABRAS.units[u] : (u || '')
+const gondolaDe = c => c ? (PALABRAS.categories[c] || c) : ''
+
+const qty = it => {
+  if (!it.qty) return ''
+  const n = it.qty === 0.5 ? '½' : (it.qty % 1 === 0 ? String(Math.round(it.qty)) : String(it.qty).replace('.', ','))
+  const u = unidadDe(it.unit)
+  return u ? n + ' ' + u : n
+}
+
+const hoyISO = () => {
+  const d = new Date()
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
+}
+
+/** "hoy", "manana", "martes", "9 de sep": ubica sin ocupar lugar. */
+function dia(iso) {
+  if (!iso) return ''
+  const d = new Date(iso.length === 10 ? iso + 'T12:00:00' : iso), h = new Date()
+  const solo = x => new Date(x.getFullYear(), x.getMonth(), x.getDate())
+  const dias = Math.round((solo(h) - solo(d)) / 86400000)
+  if (dias === 0) return 'hoy'
+  if (dias === 1) return 'ayer'
+  if (dias === -1) return 'mañana'
+  if (dias > 0 && dias < 7) return d.toLocaleDateString('es-AR', { weekday: 'long' })
+  if (dias < 0 && dias > -7) return 'el ' + d.toLocaleDateString('es-AR', { weekday: 'long' })
+  return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })
+}
+
+for (const [id, n] of [['bTg', 'enviar'], ['bRoby', 'chat'], ['bUndo', 'volver'], ['bClose', 'changuito']]) {
+  document.getElementById(id).insertAdjacentHTML('afterbegin', ico(n))
+}
+document.querySelector('#hechas .chev').innerHTML = ico('chev')
+
+// ------------------------------------------------------------------ pintar
+
+const grupoDe = it => it.group || null
+const listas = () => [...new Set(estado.items.map(grupoDe).filter(Boolean))]
+
+function render(state) {
+  if (state) estado = state
+  const c = document.getElementById('count')
+  c.textContent = estado.pending ? 'Faltan ' + estado.pending : 'Todo listo'
+  c.classList.remove('off')
+  if (state && state.rev === rev && !eligiendo) return
+  if (state) rev = state.rev
+
+  pintarSolapas()
+  const hechas = estado.items.filter(i => i.done)
+  const pend = estado.items.filter(i => !i.done)
+  const visibles = modo === 'listas'
+    ? pend.filter(i => (grupoDe(i) || GENERAL) === solapa)
+    : pend
+
+  ul.innerHTML = ''
+  if (!visibles.length) {
+    ul.innerHTML = '<li class="empty">No falta nada ac&aacute;.<br>Pedile algo a la heladera</li>'
+  } else if (modo === 'listas') {
+    ul.appendChild(cabecera(solapa, visibles, false))
+    for (const it of visibles) ul.appendChild(fila(it, vistos && !vistos.has(it.id)))
+  } else {
+    let actual = ' ', yaGeneral = false
+    for (const it of visibles) {
+      const g = grupoDe(it)
+      if (g !== actual) {
+        if (actual && actual !== ' ') ul.appendChild(fin(actual))
+        // El encabezado "General" se pone una sola vez: lo suelto que caiga
+        // después de una sublista sigue siendo lo mismo, no otra lista.
+        if (g || !yaGeneral) {
+          ul.appendChild(cabecera(g || GENERAL, visibles.filter(i => grupoDe(i) === g), !!g))
+          if (!g) yaGeneral = true
+        }
+        actual = g
+      }
+      if (g && cerradas.has(g)) continue
+      ul.appendChild(fila(it, vistos && !vistos.has(it.id)))
+    }
+    if (actual && actual !== ' ') ul.appendChild(fin(actual))
+  }
+  vistos = new Set(estado.items.map(i => i.id))
+  pintarHechas(hechas)
+}
+
+function pintarSolapas() {
+  const tabs = document.getElementById('tabs')
+  tabs.hidden = modo !== 'listas'
+  document.querySelectorAll('#modo button').forEach(b => b.classList.toggle('sel', b.dataset.modo === modo))
+  if (modo !== 'listas') return
+  const nombres = [GENERAL, ...listas()]
+  if (!nombres.includes(solapa)) solapa = GENERAL
+  tabs.innerHTML = ''
+  for (const n of nombres) {
+    const b = document.createElement('button')
+    const cuantas = estado.items.filter(i => !i.done && (grupoDe(i) || GENERAL) === n).length
+    b.textContent = cuantas ? cap(n) + '  ' + cuantas : cap(n)
+    if (n === solapa) b.className = 'sel'
+    b.onclick = () => { solapa = n; localStorage.setItem('heladera.solapa', n); rev = null; render() }
+    tabs.appendChild(b)
+  }
+}
+
+function pintarHechas(hechas) {
+  const caja = document.getElementById('hechas')
+  const propias = modo === 'listas'
+    ? hechas.filter(i => (grupoDe(i) || GENERAL) === solapa)
+    : hechas
+  caja.hidden = false
+  caja.classList.toggle('abierta', verHechas)
+  document.getElementById('hechasTit').textContent = 'Completadas (' + propias.length + ')'
+  document.getElementById('bVaciar').style.display = propias.length ? '' : 'none'
+  ulHechas.innerHTML = ''
+  if (!propias.length) {
+    ulHechas.innerHTML = '<li class="empty">Todav&iacute;a no tachaste nada.</li>'
+    return
+  }
+  propias.sort((a, b) => String(b.doneAt || '').localeCompare(String(a.doneAt || '')))
+  for (const it of propias) ulHechas.appendChild(fila(it, false))
+}
+
+/**
+ * Cierre invisible de una sublista.
+ *
+ * Sin esto no hay manera de saber si algo que quedo debajo del ultimo renglon
+ * del grupo entro al grupo o quedo afuera: esta marca es el borde.
+ */
+function fin(nombre) {
+  const li = document.createElement('li')
+  li.className = 'fin'
+  li.dataset.fin = nombre
+  return li
+}
+
+function cabecera(nombre, suyos, plegable) {
+  const li = document.createElement('li')
+  const propia = nombre !== GENERAL
+  li.className = 'head' + (plegable && cerradas.has(nombre) ? ' cerrada' : '')
+  if (propia && plegable) li.dataset.head = nombre
+  const faltan = suyos.length
+  li.innerHTML = (propia && plegable ? `<span class="grip">${ico('grip')}</span>` : '<span class="grip"></span>')
+    + (plegable ? `<span class="chev">${ico('chev')}</span>` : '<span class="hueco"></span>')
+    + '<span class="tit"></span>'
+    + `<span class="cuenta">${faltan ? faltan + ' pendiente' + (faltan === 1 ? '' : 's') : 'completa'}</span>`
+    + '<span class="mas">&middot;&middot;&middot;</span>'
+  li.querySelector('.tit').textContent = nombre
+  li.querySelector('.mas').onclick = e => { e.stopPropagation(); menuLista(nombre, propia) }
+  if (plegable) {
+    li.onclick = e => {
+      if (arrastro || e.target.closest('.grip') || e.target.closest('.mas')) return
+      if (cerradas.has(nombre)) cerradas.delete(nombre); else cerradas.add(nombre)
+      localStorage.setItem('heladera.cerradas', JSON.stringify([...cerradas]))
+      rev = null
+      render()
+    }
+    if (propia) li.addEventListener('pointerdown', ev => alPresionar(li, ev))
+  }
+  return li
+}
+
+function fila(it, nuevo) {
+  const li = document.createElement('li')
+  li.className = 'item' + (it.done ? ' done' : '') + (nuevo ? ' nuevo' : '')
+    + (it.group && modo === 'todo' && !it.done ? ' sub' : '') + (elegidos.has(it.id) ? ' sel' : '')
+  li.dataset.id = it.id
+  // Debajo del nombre: cuando, la nota y en que gondola se compra.
+  const tarde = it.due && it.due < hoyISO()
+  const extra = [it.note, gondolaDe(it.cat)].filter(Boolean)
+    .map(t => String(t).replace(/</g, '&lt;')).join(' &middot; ')
+  const fecha = it.due
+    ? `<b class="${tarde ? 'tarde' : ''}">${cap(dia(it.due))}</b>`
+    : dia(it.createdAt)
+  const sub = [fecha, extra].filter(Boolean).join(' &middot; ')
+  li.innerHTML = `<span class="grip">${ico('grip')}</span>`
+    + `<span class="pick">${ico('cuadro', 'no')}${ico('cuadro_ok', 'si')}</span>`
+    + '<span class="hit"><span class="mark"></span></span>'
+    + '<span class="body"><span class="name"></span>' + (sub ? `<div class="sub2">${sub}</div>` : '') + '</span>'
+    + `<span class="fav${it.star ? ' on' : ''}">${ico('estrella')}</span>`
+    + '<span class="del">&times;</span>'
+  const q = qty(it)
+  li.querySelector('.name').textContent = (q ? q + '  ' : '') + cap(it.name)
+
+  const elegir = e => {
+    e.stopPropagation()
+    if (arrastro) return
+    if (eligiendo) {
+      if (elegidos.has(it.id)) elegidos.delete(it.id); else elegidos.add(it.id)
+      li.classList.toggle('sel')
+      pintarBarra()
+      return
+    }
+    tachar(li, it)
+  }
+  li.querySelector('.hit').onclick = elegir
+  li.querySelector('.pick').onclick = elegir
+  // Tocar el renglon abre el detalle, como en Tasks: el circulo tacha.
+  li.querySelector('.body').onclick = e => {
+    e.stopPropagation()
+    if (arrastro) return
+    if (eligiendo) { elegir(e); return }
+    detalle(it)
+  }
+  li.querySelector('.fav').onclick = e => {
+    e.stopPropagation()
+    api('/api/items/' + it.id + '/star', { method: 'POST' }).then(r => { rev = null; render(r) })
+  }
+  li.querySelector('.del').onclick = e => {
+    e.stopPropagation()
+    api('/api/items/' + it.id + '/delete', { method: 'POST' })
+      .then(r => { rev = null; render(r); toast('Lo saqué', false, { fn: deshacer }) })
+      .catch(e => toast(e.message, true))
+  }
+  li.addEventListener('pointerdown', ev => alPresionar(li, ev))
+  return li
+}
+
+/** Florece el tilde, se desvanece, y recien ahi se cierra el hueco. */
+function tachar(li, it) {
+  if (it.done) {
+    api('/api/items/' + it.id + '/toggle', { method: 'POST' }).then(r => { rev = null; render(r) })
+    return
+  }
+  li.style.height = li.offsetHeight + 'px'
+  li.classList.add('yendose')
+  requestAnimationFrame(() => requestAnimationFrame(() => li.classList.add('cerrando')))
+  api('/api/items/' + it.id + '/toggle', { method: 'POST' })
+    .then(r => setTimeout(() => { rev = null; render(r) }, 300))
+    .catch(e => toast(e.message, true))
+}
+
+const deshacer = () => api('/api/undo', { method: 'POST' }).then(r => { rev = null; render(r) })
+
+// ------------------------------------------------------------ arrastrar
+
+let drag = null, espera = null, arrastro = false
+
+/** Lo que viaja junto: un renglon suelto, o una sublista entera. */
+function unidad(el) {
+  if (!el.dataset.head) return [el]
+  const out = [el]
+  let n = el.nextElementSibling
+  while (n) { out.push(n); if (n.classList.contains('fin')) break; n = n.nextElementSibling }
+  return out
+}
+
+/**
+ * Arrastrar es de la agarradera; mantener apretado es para elegir.
+ *
+ * Los dos gestos no pueden ser el mismo. Los puntitos están a la vista, y
+ * mantener apretado para seleccionar es lo que la mano ya espera.
+ */
+function alPresionar(li, ev) {
+  if (ev.button > 0 || ev.target.closest('.del') || ev.target.closest('.mas')
+      || ev.target.closest('.fav')) return
+  if (li.closest('#listaHechas')) return
+  if (ev.target.closest('.grip')) { ev.preventDefault(); empezar(li, ev); return }
+  if (eligiendo) return
+  const esLista = !!li.dataset.head
+  espera = {
+    y0: ev.clientY,
+    t: setTimeout(() => {
+      espera = null
+      if (esLista) { empezar(li, ev); return }
+      eligiendo = true
+      elegidos.add(Number(li.dataset.id))
+      if (navigator.vibrate) navigator.vibrate(14)
+      rev = null
+      pintarBarra()
+      render()
+    }, 420),
+  }
+}
+
+const cancelarEspera = () => { if (espera) { clearTimeout(espera.t); espera = null } }
+
+function empezar(li, ev) {
+  const todas = [...ul.children]
+  const bloque = unidad(li)
+  const i0 = todas.indexOf(bloque[0])
+  if (i0 < 0 || todas.length - bloque.length < 1) return
+  const cajas = new Map(todas.map(f => [f, f.getBoundingClientRect()]))
+  const alto = bloque.reduce((a, f) => a + cajas.get(f).height, 0)
+  const fuera = todas.filter(f => !bloque.includes(f))
+  drag = { bloque, fuera, cajas, i0, top0: cajas.get(bloque[0]).top, alto, ins: i0, y0: ev.clientY, pid: ev.pointerId }
+  arrastro = true
+  ul.classList.add('dragging')
+  for (const f of bloque) f.classList.add('drag')
+  try { li.setPointerCapture(ev.pointerId) } catch (e) { /* sin captura anda igual */ }
+  if (navigator.vibrate) navigator.vibrate(12)
+}
+
+function mover(ev) {
+  if (espera && Math.abs(ev.clientY - espera.y0) > 9) cancelarEspera()
+  if (!drag || ev.pointerId !== drag.pid) return
+  const dy = ev.clientY - drag.y0
+  for (const f of drag.bloque) f.style.transform = 'translateY(' + dy + 'px)'
+  const medio = drag.top0 + dy + drag.alto / 2
+  let ins = 0
+  for (const f of drag.fuera) {
+    const r = drag.cajas.get(f)
+    if (r.top + r.height / 2 < medio) ins++; else break
+  }
+  if (ins === drag.ins) return
+  drag.ins = ins
+  drag.fuera.forEach((f, k) => {
+    let s = 0
+    if (ins > drag.i0 && k >= drag.i0 && k < ins) s = -drag.alto
+    if (ins < drag.i0 && k >= ins && k < drag.i0) s = drag.alto
+    f.style.transform = s ? 'translateY(' + s + 'px)' : ''
+  })
+  // Se ve entrar y salir de la sublista mientras arrastras.
+  if (drag.bloque.length === 1 && drag.bloque[0].dataset.id && modo === 'todo') {
+    drag.bloque[0].classList.toggle('sub', !!grupoEn(ins))
+  }
+}
+
+/** En que sublista cae la posicion `ins` de la lista de afuera. */
+function grupoEn(ins) {
+  let cur = null
+  for (let k = 0; k < ins && k < drag.fuera.length; k++) {
+    const f = drag.fuera[k]
+    if (f.dataset.head) cur = f.dataset.head
+    else if (f.dataset.fin) cur = null
+  }
+  return cur
+}
+
+function soltar() {
+  cancelarEspera()
+  if (!drag) return
+  const bloque = drag.bloque, fuera = drag.fuera, ins = drag.ins, i0 = drag.i0
+  if (ins !== i0) {
+    const ref = fuera[ins] || null
+    for (const f of bloque) ul.insertBefore(f, ref)
+  }
+  for (const f of bloque.concat(fuera)) { f.style.transform = ''; f.classList.remove('drag') }
+  ul.classList.remove('dragging')
+  drag = null
+  setTimeout(() => { arrastro = false }, 60)
+  if (ins === i0) return
+
+  // Releemos el orden final y de paso quien quedo en que sublista.
+  const ids = [], groups = {}
+  let cur = null
+  for (const f of ul.children) {
+    if (f.dataset.head) { cur = f.dataset.head; continue }
+    if (f.dataset.fin) { cur = null; continue }
+    if (!f.dataset.id) continue
+    ids.push(Number(f.dataset.id))
+    if (modo === 'todo') groups[f.dataset.id] = cur
+  }
+  rev = null
+  api('/api/items/reorder', { method: 'POST', body: JSON.stringify({ ids, groups }) })
+    .then(render).catch(e => toast(e.message, true))
+}
+
+document.addEventListener('pointermove', mover)
+document.addEventListener('pointerup', soltar)
+document.addEventListener('pointercancel', () => { cancelarEspera(); soltar() })
+document.addEventListener('scroll', cancelarEspera, true)
+ul.addEventListener('touchmove', e => { if (drag) e.preventDefault() }, { passive: false })
+
+// ------------------------------------------------------------ hoja de abajo
+
+const sheet = document.getElementById('sheet')
+const panel = document.getElementById('panel')
+const cerrarHoja = () => sheet.classList.remove('on')
+sheet.querySelector('.veil').onclick = cerrarHoja
+
+function armarHoja(titulo, nota) {
+  panel.innerHTML = '<div class="grab"></div><h3></h3>' + (nota ? '<p class="note"></p>' : '')
+  panel.querySelector('h3').textContent = titulo
+  if (nota) panel.querySelector('p.note').textContent = nota
+  sheet.classList.add('on')
+  return panel
+}
+
+function hoja(titulo, nota, opciones) {
+  armarHoja(titulo, nota)
+  for (const o of opciones) {
+    const d = document.createElement('div')
+    d.className = 'opt'
+    d.innerHTML = `<span class="ico">${ico(o.ico)}</span>`
+    d.appendChild(document.createTextNode(o.label))
+    d.onclick = () => { cerrarHoja(); o.fn() }
+    panel.appendChild(d)
+  }
+}
+
+/** El detalle de un renglon: nombre, nota, dia, estrella. */
+function detalle(it) {
+  armarHoja(cap(it.name), null)
+  const caja = document.createElement('div')
+  caja.className = 'campo'
+  caja.innerHTML = '<label>Qu&eacute; es</label><input type="text" id="dNombre">'
+    + '<label>Nota (marca, aclaraci&oacute;n)</label><input type="text" id="dNota" placeholder="descremada, sin sal...">'
+    + '<label>Para cu&aacute;ndo</label><input type="date" id="dFecha">'
+    + '<label class="check" style="margin-top:14px"><input type="checkbox" id="dStar"> Destacada</label>'
+  panel.appendChild(caja)
+  caja.querySelector('#dNombre').value = it.name
+  caja.querySelector('#dNota').value = it.note || ''
+  caja.querySelector('#dFecha').value = it.due || ''
+  caja.querySelector('#dStar').checked = !!it.star
+
+  const pie = document.createElement('div')
+  pie.className = 'pie'
+  pie.innerHTML = '<button class="danger" id="dBorrar">Borrar</button><button id="dOk">Guardar</button>'
+  panel.appendChild(pie)
+  pie.querySelector('#dBorrar').onclick = () => {
+    cerrarHoja()
+    api('/api/items/' + it.id + '/delete', { method: 'POST' })
+      .then(r => { rev = null; render(r); toast('Lo saqué', false, { fn: deshacer }) })
+  }
+  pie.querySelector('#dOk').onclick = () => {
+    const body = {
+      name: caja.querySelector('#dNombre').value.trim() || it.name,
+      note: caja.querySelector('#dNota').value.trim() || null,
+      due: caja.querySelector('#dFecha').value || null,
+      star: caja.querySelector('#dStar').checked,
+    }
+    cerrarHoja()
+    api('/api/items/' + it.id, { method: 'POST', body: JSON.stringify(body) })
+      .then(r => { rev = null; render(r); toast('Guardado') })
+      .catch(e => toast(e.message, true))
+  }
+}
+
+document.getElementById('bSort').onclick = () => hoja(
+  'Ordenar la lista',
+  'La lista queda como vos la dejás. Esto la acomoda una vez y después no se mueve más sola.',
+  [['fecha', 'reloj', 'Fecha', 'Ordenada por fecha'],
+   ['star', 'estrella', 'Destacadas recientemente', 'Primero las destacadas'],
+   ['abc', 'lista', 'Título', 'Ordenada de la A a la Z'],
+   ['cat', 'changuito', 'Categoría', 'Ordenada por categoría']].map(par => ({
+    ico: par[1], label: par[2],
+    fn: () => api('/api/list/sort', { method: 'POST', body: JSON.stringify({ by: par[0] }) })
+      .then(r => { rev = null; render(r); toast(par[3], false, { fn: deshacer }) })
+      .catch(e => toast(e.message, true)),
+  })))
+
+function menuLista(nombre, propia) {
+  const suyos = estado.items.filter(i => (grupoDe(i) || GENERAL) === nombre)
+  const acc = (what, msg) => () => api('/api/groups/' + encodeURIComponent(nombre) + '/' + what, { method: 'POST' })
+    .then(r => { rev = null; render(r); toast(msg, false, { fn: deshacer }) })
+    .catch(e => toast(e.message, true))
+  const mandar = canal => () => api('/api/send', {
+    method: 'POST', body: JSON.stringify({ channel: canal, group: propia ? nombre : null }),
+  }).then(r => toast(r.sent && r.sent.ok ? 'Mandé ' + nombre : 'No salió', !(r.sent && r.sent.ok)))
+    .catch(e => toast(e.message, true))
+
+  const ops = [
+    { ico: 'enviar', label: 'Mandar por Telegram', fn: mandar('telegram') },
+    { ico: 'chat', label: 'Mandar por WhatsApp', fn: mandar('roby') },
+    { ico: 'orden', label: 'Ordenar', fn: () => document.getElementById('bSort').onclick() },
+    { ico: 'carpeta', label: 'Separar en listas por góndola', fn: () =>
+      api('/api/list/organizar', { method: 'POST', body: '{}' })
+        .then(r => { rev = null; render(r); toast('Separé por góndola', false, { fn: deshacer }) })
+        .catch(e => toast(e.message, true)) },
+  ]
+  if (propia) ops.push(
+    { ico: 'tachar', label: 'Tachar todo', fn: acc('done', 'Tildé ' + nombre) },
+    { ico: 'volver', label: 'Destachar todo', fn: acc('undone', 'Destildé ' + nombre) },
+    { ico: 'lista', label: 'Desarmar la lista', fn: acc('ungroup', 'Desarmé ' + nombre) },
+    { ico: 'papelera', label: 'Borrar la lista entera', fn: acc('remove', 'Borré ' + nombre) })
+  hoja(nombre, suyos.length + ' cosas', ops)
+}
+
+// ------------------------------------------------------------- elegir
+
+const bPick = document.getElementById('bPick')
+const barra = document.getElementById('barra')
+
+function pintarBarra() {
+  barra.classList.toggle('on', eligiendo)
+  document.getElementById('composer').classList.toggle('oculto', eligiendo)
+  document.body.classList.toggle('eligiendo', eligiendo)
+  bPick.textContent = eligiendo ? (elegidos.size + ' elegidas') : 'Elegir'
+  bPick.classList.toggle('on', eligiendo)
+  // Ordenar no tiene sentido mientras elegís, y tampoco arrastrar.
+  document.getElementById('bSort').hidden = eligiendo
+  document.getElementById('modo').hidden = eligiendo
+  const all = document.getElementById('bAll')
+  all.hidden = !eligiendo
+  all.textContent = todasElegidas() ? 'Ninguna' : 'Todas'
+}
+
+const seleccionables = () =>
+  [...ul.querySelectorAll('li.item')].map(f => Number(f.dataset.id))
+
+const todasElegidas = () => {
+  const v = seleccionables()
+  return v.length > 0 && v.every(id => elegidos.has(id))
+}
+
+document.getElementById('bAll').onclick = () => {
+  if (todasElegidas()) elegidos.clear()
+  else for (const id of seleccionables()) elegidos.add(id)
+  rev = null
+  pintarBarra()
+  render()
+}
+
+bPick.onclick = () => { eligiendo = !eligiendo; elegidos.clear(); rev = null; pintarBarra(); render() }
+document.getElementById('sEnd').onclick = bPick.onclick
+
+const sobreElegidos = (path, body, msg) =>
+  api(path, { method: 'POST', body: JSON.stringify(Object.assign({ ids: [...elegidos] }, body)) })
+    .then(r => { elegidos.clear(); eligiendo = false; pintarBarra(); rev = null; render(r); toast(msg, false, { fn: deshacer }) })
+    .catch(e => toast(e.message, true))
+
+document.getElementById('sList').onclick = () => {
+  if (!elegidos.size) return toast('Elegí algo primero', true)
+  const nombre = prompt('¿Cómo se llama la lista?', '')
+  if (nombre === null) return
+  sobreElegidos('/api/items/group', { group: nombre }, nombre ? 'A la lista de ' + nombre : 'Las saqué de la lista')
+}
+document.getElementById('sDone').onclick = () => sobreElegidos('/api/items/bulk', { what: 'done' }, 'Tachadas')
+document.getElementById('sDel').onclick = () => sobreElegidos('/api/items/bulk', { what: 'remove' }, 'Borradas')
+
+// ----------------------------------------------------------------- resto
+
+document.querySelectorAll('#modo button').forEach(b => {
+  b.onclick = () => { modo = b.dataset.modo; localStorage.setItem('heladera.modo', modo); rev = null; render() }
+})
+document.querySelector('#hechas .cab').onclick = e => {
+  if (e.target.closest('.vaciar')) return
+  verHechas = !verHechas
+  localStorage.setItem('heladera.verHechas', verHechas ? '1' : '0')
+  document.getElementById('hechas').classList.toggle('abierta', verHechas)
+}
+document.getElementById('bVaciar').onclick = () =>
+  api('/api/list/clear', { method: 'POST', body: JSON.stringify({ scope: 'done' }) })
+    .then(r => { rev = null; render(r); toast('Vacié las completadas', false, { fn: deshacer }) })
+    .catch(e => toast(e.message, true))
+
+function showUnlinked(e) {
+  if (webToken || !String(e && e.message || '').includes('no está vinculada')) return false
+  document.getElementById('access').hidden = false
+  ul.innerHTML = '<li class="empty">Acceso pendiente</li>'
+  const c = document.getElementById('count')
+  c.textContent = 'Sin vincular'; c.classList.add('off')
+  return true
+}
+
+function refresh() {
+  if (drag) return
+  api('/api/list').then(render).catch(e => {
+    if (showUnlinked(e)) return
+    const c = document.getElementById('count')
+    c.textContent = 'Sin conexión'; c.classList.add('off')
+  })
+}
+
+function addItem() {
+  const el = document.getElementById('entry')
+  const text = el.value.trim()
+  if (!text) return
+  el.value = ''
+  // Va por /api/text para que el modelo entienda "2 litros de leche descremada"
+  // La lista que estás mirando es el destino, salvo que nombres otra al hablar.
+  const lista = modo === 'listas' && solapa !== GENERAL ? solapa : null
+  api('/api/text', { method: 'POST', body: JSON.stringify({ text: 'agregá ' + text, speak: false, list: lista }) })
+    .then(r => { rev = null; render(r); if (r.reply) toast(r.reply) })
+    .catch(e => toast(e.message, true))
+}
+
+document.getElementById('bAdd').onclick = addItem
+document.getElementById('entry').addEventListener('keydown', e => { if (e.key === 'Enter') addItem() })
+
+const post = (path, body, msg) => () =>
+  api(path, { method: 'POST', body: JSON.stringify(body || {}) })
+    .then(r => { toast(msg || 'Listo'); rev = null; render(r) })
+    .catch(e => toast(e.message, true))
+
+document.getElementById('bTg').onclick = () =>
+  api('/api/send', { method: 'POST', body: JSON.stringify({ channel: 'telegram' }) })
+    .then(r => {
+      const ok = r.sent && r.sent.ok
+      toast(ok ? 'Enviada por Telegram' : 'No salió: ' + ((r.sent && r.sent.error) || ''), !ok)
+      render(r)
+    })
+    .catch(e => toast(e.message, true))
+document.getElementById('bRoby').onclick = post('/api/send', { channel: 'roby' }, 'Se manda por WhatsApp')
+document.getElementById('bUndo').onclick = post('/api/undo', {}, 'Volví atrás')
+document.getElementById('bClose').onclick = () => {
+  if (!confirm('¿Cerrar la compra? La lista se archiva y queda vacía.')) return
+  post('/api/list/close', {}, 'Compra cerrada')()
+}
+
+refresh()
+setInterval(refresh, 3000)
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh() })
+</script>
+</body>
+</html>
